@@ -357,6 +357,15 @@ def hitl_resolve(req: HITLResolve):
     ok = get_guardrails().resolve_hitl(req.rule_id, req.approved)
     return {"resolved": ok, "approved": req.approved}
 
+# ── Red Team ──────────────────────────────────────────────────────────────────
+@app.post("/api/redteam/run")
+async def redteam_run():
+    """Run full red team security audit and return the report."""
+    loop = asyncio.get_event_loop()
+    from redteam import run_redteam
+    report = await loop.run_in_executor(None, lambda: run_redteam(verbose=False))
+    return report
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print("\n" + "="*50)

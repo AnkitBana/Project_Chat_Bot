@@ -459,9 +459,84 @@ print(agent.run("What is the current stock price of AAPL?"))
 
 ---
 
+## Deployment
+
+### Docker (single container)
+```bash
+docker build -t nova-agent .
+docker run -p 8000:8000 --env-file .env nova-agent
+```
+
+### Docker Compose (with Redis)
+```bash
+docker-compose up -d
+# Opens http://localhost:8000 with Redis distributed cache
+```
+
+The Compose stack runs:
+- **nova-agent** — FastAPI server on port 8000
+- **redis** — Distributed LRU cache (256MB, LRU eviction, persistent AOF)
+
+### Cloud (Google Cloud Run)
+```bash
+gcloud builds submit --tag gcr.io/PROJECT_ID/nova-agent
+gcloud run deploy nova-agent \
+  --image gcr.io/PROJECT_ID/nova-agent \
+  --platform managed \
+  --set-env-vars GOOGLE_API_KEY=... \
+  --allow-unauthenticated
+```
+
+---
+
+## Security — Red Team Audit
+
+Run the automated attack suite to verify guardrails:
+
+```bash
+python redteam.py
+```
+
+Current results (14/14 — 100%):
+```
+Prompt Injection    [###]  3/3  blocked
+System File Access  [###]  3/3  blocked
+Shell Injection     [##]   2/2  blocked
+HITL Trigger        [###]  3/3  paused for approval
+Safe Input          [###]  3/3  allowed through
+```
+
+Or via API:
+```bash
+curl -X POST http://localhost:8000/api/redteam/run
+```
+
+---
+
+## Tech Stack (Updated)
+
+| Layer | Technology |
+|-------|------------|
+| Agent Framework | LangChain 1.x + LangGraph |
+| LLM Providers | OpenAI, Anthropic, Google Gemini |
+| Web Backend | FastAPI + Uvicorn (SSE streaming) |
+| Web Frontend | Vanilla HTML/CSS/JS |
+| Semantic Search | ChromaDB (hybrid BM25 + vector) |
+| Cache | Redis (prod) / Local LRU (dev) |
+| Tracing | Custom JSONL audit log |
+| Security | Guardrails + Red Team test suite |
+| Search | DuckDuckGo (ddgs) |
+| Deployment | Docker + docker-compose |
+
+---
+
 ## Roadmap
 
-- [ ] Streaming responses in the web UI
+- [x] Streaming responses in the web UI
+- [x] Redis distributed cache (with local LRU fallback)
+- [x] Semantic vector search (ChromaDB hybrid RAG)
+- [x] Red team security audit tool (100% pass rate)
+- [x] Docker + docker-compose deployment
 - [ ] File upload for RAG ingestion via UI
 - [ ] Observability dashboard (trace viewer in UI)
 - [ ] OAuth / login for multi-user support
