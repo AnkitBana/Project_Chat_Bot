@@ -1,3 +1,8 @@
+fastapi
+uvicorn[standard]
+python-multipart
+python-jose[cryptography]
+
 langchain
 langchain-community
 langchain-openai
@@ -11,7 +16,7 @@ google-generativeai
 python-dotenv
 requests
 beautifulsoup4
-duckduckgo-search
+duckduckgo-search>=6.0
 
 pypdf
 python-docx

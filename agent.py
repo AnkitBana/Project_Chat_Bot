@@ -178,16 +178,8 @@ class AIAgent:
                 tracer.finish(trace, reply)
                 return reply
 
-            # ── Step 2: Cache lookup ─────────────────────────────────────────
+            # ── Step 2: Cache lookup (use as reference, not exact reply) ─────
             cached = cache.get(user_input)
-            if cached:
-                trace.log(EventType.CACHE_HIT, {"preview": cached[:80]})
-                if self.verbose:
-                    print("  [Cache] Hit — instant reply")
-                self.memory.add_message(user_input, cached)
-                reply = f"{cached}\n\n*(instant reply from cache)*"
-                tracer.finish(trace, reply)
-                return reply
 
             # ── Step 3: RAG context augmentation ────────────────────────────
             rag_context = rag.format_context(user_input)
@@ -195,6 +187,14 @@ class AIAgent:
             if rag_context:
                 system = f"{self.system_message}\n\n{rag_context}"
                 trace.log(EventType.LLM_CALL, {"rag_context_chars": len(rag_context)})
+            if cached:
+                trace.log(EventType.CACHE_HIT, {"preview": cached[:80]})
+                if self.verbose:
+                    print("  [Cache] Hit — using as reference context")
+                system = (
+                    f"{system}\n\n"
+                    f"[Previous answer for reference — rephrase naturally, do not repeat verbatim]:\n{cached}"
+                )
 
             # ── Step 4: LLM call ─────────────────────────────────────────────
             trace.log(EventType.LLM_CALL, {"model": getattr(self.llm, "model", "?")})

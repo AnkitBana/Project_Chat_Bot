@@ -7,7 +7,7 @@ import requests
 from typing import Optional
 from datetime import datetime
 from langchain_core.tools import tool
-from ddgs import DDGS
+from duckduckgo_search import DDGS
 from bs4 import BeautifulSoup
 
 

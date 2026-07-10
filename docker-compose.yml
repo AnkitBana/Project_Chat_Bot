@@ -1,25 +1,31 @@
 version: "3.9"
 
+# Loads variables from .env file in the same directory automatically.
+# Copy .env.example → .env and fill in your API keys before running.
+
 services:
   # ── AI Agent Server ─────────────────────────────────────────────────────────
   agent:
     build: .
+    env_file:
+      - .env                          # explicit — works even without shell exports
     ports:
       - "8000:8000"
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - DEFAULT_LLM_PROVIDER=${DEFAULT_LLM_PROVIDER:-google}
-      - GOOGLE_MODEL=${GOOGLE_MODEL:-gemini-2.5-flash-lite}
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_URL=redis://redis:6379/0   # override to point at the redis service
     volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
+      - agent_data:/app/data
+      - agent_logs:/app/logs
     depends_on:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/status')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
 
   # ── Redis (distributed cache) ───────────────────────────────────────────────
   redis:
@@ -28,13 +34,19 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 5s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped
 
 volumes:
+  agent_data:
+  agent_logs:
   redis_data:

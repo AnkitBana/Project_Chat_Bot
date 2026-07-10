@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Up — Nova AI</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f13; color: #e8e8f0;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .card {
+      width: 100%; max-width: 400px;
+      background: #16161e;
+      border: 1px solid #2a2a38;
+      border-radius: 18px;
+      padding: 40px 36px 36px;
+      margin: 24px;
+    }
+
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      justify-content: center; margin-bottom: 32px;
+    }
+    .logo-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, #7c5cd8, #3b82d4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 700; color: #fff;
+    }
+    .logo-text { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+    .logo-text span { color: #7c5cd8; }
+
+    h2 {
+      font-size: 20px; font-weight: 600;
+      text-align: center; margin-bottom: 6px;
+    }
+    .subtitle {
+      text-align: center; font-size: 13px;
+      color: #666680; margin-bottom: 28px;
+    }
+
+    .field { margin-bottom: 16px; }
+    label {
+      display: block; font-size: 12px;
+      color: #888899; margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    input {
+      width: 100%; padding: 11px 14px;
+      background: #1e1e2a; border: 1px solid #2a2a38;
+      border-radius: 10px; color: #e8e8f0;
+      font-size: 14px; outline: none;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: #7c5cd8; }
+    input::placeholder { color: #444458; }
+
+    .hint {
+      font-size: 11px; color: #555570;
+      margin-top: 5px;
+    }
+
+    .btn-primary {
+      width: 100%; padding: 12px;
+      background: linear-gradient(135deg, #7c5cd8, #5b3fb0);
+      border: none; border-radius: 11px;
+      color: #fff; font-size: 14px; font-weight: 600;
+      cursor: pointer; margin-top: 8px;
+      transition: opacity 0.2s;
+      font-family: inherit;
+    }
+    .btn-primary:hover   { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .error-msg {
+      background: #2a1a1a; border: 1px solid #4a2a2a;
+      color: #ff8080; border-radius: 9px;
+      padding: 10px 14px; font-size: 13px;
+      margin-bottom: 16px; display: none;
+    }
+    .error-msg.show { display: block; }
+
+    .success-msg {
+      background: #1a2a1a; border: 1px solid #2a4a2a;
+      color: #6fdc6f; border-radius: 9px;
+      padding: 10px 14px; font-size: 13px;
+      margin-bottom: 16px; display: none;
+    }
+    .success-msg.show { display: block; }
+
+    .footer-link {
+      text-align: center; margin-top: 22px;
+      font-size: 13px; color: #666680;
+    }
+    .footer-link a {
+      color: #9b7ff0; text-decoration: none; font-weight: 500;
+    }
+    .footer-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">N</div>
+    <div class="logo-text"><span>Nova</span> AI</div>
+  </div>
+
+  <h2>Create account</h2>
+  <p class="subtitle">Join Nova AI Agent today</p>
+
+  <div class="error-msg"   id="errorMsg"></div>
+  <div class="success-msg" id="successMsg"></div>
+
+  <form id="signupForm">
+    <div class="field">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username"
+             placeholder="Choose a username" autocomplete="username"
+             minlength="3" maxlength="32" required />
+      <div class="hint">3–32 characters, letters and numbers only</div>
+    </div>
+    <div class="field">
+      <label for="email">Email (optional)</label>
+      <input type="email" id="email" name="email"
+             placeholder="you@example.com" autocomplete="email" />
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password"
+             placeholder="Choose a strong password"
+             autocomplete="new-password" minlength="6" required />
+      <div class="hint">Minimum 6 characters</div>
+    </div>
+    <div class="field">
+      <label for="confirmPassword">Confirm Password</label>
+      <input type="password" id="confirmPassword" name="confirmPassword"
+             placeholder="Repeat your password"
+             autocomplete="new-password" required />
+    </div>
+    <button class="btn-primary" type="submit" id="signupBtn">Create Account</button>
+  </form>
+
+  <div class="footer-link">
+    Already have an account? <a href="/login">Sign in</a>
+  </div>
+</div>
+
+<script>
+  // If already logged in, go straight to the app
+  if (localStorage.getItem('nova_token')) {
+    window.location.href = '/';
+  }
+
+  document.getElementById('signupForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const btn             = document.getElementById('signupBtn');
+    const errorEl         = document.getElementById('errorMsg');
+    const successEl       = document.getElementById('successMsg');
+    const username        = document.getElementById('username').value.trim();
+    const email           = document.getElementById('email').value.trim();
+    const password        = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    errorEl.classList.remove('show');
+    successEl.classList.remove('show');
+
+    // Client-side validation
+    if (password !== confirmPassword) {
+      errorEl.textContent = 'Passwords do not match.';
+      errorEl.classList.add('show');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]{3,32}$/.test(username)) {
+      errorEl.textContent = 'Username must be 3–32 characters (letters, numbers, underscores).';
+      errorEl.classList.add('show');
+      return;
+    }
+
+    btn.disabled    = true;
+    btn.textContent = 'Creating account…';
+
+    try {
+      const body = { username, password };
+      if (email) body.email = email;
+
+      const res  = await fetch('/api/auth/signup', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+      });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch (_) {
+        throw new Error('Server error — make sure server.py is running and your API key is set in .env');
+      }
+
+      if (!res.ok) {
+        throw new Error(data.detail || 'Signup failed');
+      }
+
+      // Auto-login after signup
+      localStorage.setItem('nova_token',    data.access_token);
+      localStorage.setItem('nova_username', data.username);
+
+      successEl.textContent = 'Account created! Redirecting…';
+      successEl.classList.add('show');
+
+      setTimeout(() => { window.location.href = '/'; }, 1000);
+
+    } catch(err) {
+      errorEl.textContent = err.message;
+      errorEl.classList.add('show');
+      btn.disabled    = false;
+      btn.textContent = 'Create Account';
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,6 +1,22 @@
 # How to Run the AI Agent System
 
-## Quick Start (3 Steps)
+---
+
+## ⚡ One-Click Local Run
+
+Double-click **`run.bat`** or run it from a terminal:
+
+```bat
+run.bat
+```
+
+- First run: opens `.env` in Notepad — add your API key, save, run again.
+- Installs dependencies automatically.
+- Opens **http://localhost:8000** in your browser.
+
+---
+
+## Manual Quick Start (3 Steps)
 
 ### Step 1: Install Dependencies
 ```bash
@@ -10,10 +26,9 @@ pip install -r requirements.txt
 ### Step 2: Set Up API Key
 ```bash
 # Copy the example file
-cp .env.example .env
+cp .env.example .env   # Windows: copy .env.example .env
 
 # Edit .env and add your API key
-# Use any text editor (notepad, vim, nano, etc.)
 ```
 
 Add at least ONE API key to `.env`:
@@ -23,13 +38,16 @@ OPENAI_API_KEY=sk-your-key-here
 
 ### Step 3: Run!
 ```bash
-# Option 1: Quick Demo
+# Web UI (login/signup + chat)
+python server.py
+
+# CLI demo
 python main.py demo
 
-# Option 2: Interactive Chat
+# Interactive CLI chat
 python main.py single
 
-# Option 3: Multi-Agent System
+# Multi-Agent CLI
 python main.py multi
 ```
 
