@@ -71,7 +71,6 @@ def example_memory_management():
     
     agent = AIAgent(
         name="MemoryAgent",
-        memory_type="buffer",
         verbose=False
     )
     
@@ -191,17 +190,17 @@ def example_custom_agent():
     print("EXAMPLE 9: Custom Specialized Agent")
     print("="*60 + "\n")
     
-    custom_prompt = """You are a Python coding expert.
-    You specialize in writing clean, efficient Python code.
-    Always follow PEP 8 style guidelines.
+    custom_prompt = """You are a helpful coding assistant.
+    You write clean, efficient, well-documented code in any language requested.
+    Always follow the language's idiomatic style guidelines.
     Provide explanations for your code."""
-    
+
     agent = AIAgent(
-        name="PythonExpert",
+        name="CodingAssistant",
         system_message=custom_prompt,
         verbose=False
     )
-    
+
     response = agent.run("Write a Python function to calculate fibonacci numbers")
     print("Q: Write a Python function to calculate fibonacci numbers")
     print(f"A: {response[:300]}...\n")

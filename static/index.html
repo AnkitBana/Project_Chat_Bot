@@ -4,9 +4,12 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Nova AI</title>
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ── Dark theme (default) ── */
     :root {
       --bg:        #212121;
       --sidebar:   #171717;
@@ -21,6 +24,34 @@
       --danger:    #ef4444;
       --radius:    12px;
     }
+
+    /* ── Light theme ── */
+    :root[data-theme="light"] {
+      --bg:        #ffffff;
+      --sidebar:   #f7f7f8;
+      --surface:   #efefef;
+      --border:    #d9d9e3;
+      --text:      #1a1a1a;
+      --muted:     #6e6e80;
+      --accent:    #0d9e72;
+      --accent2:   #6540c8;
+      --user-bg:   #efefef;
+      --code-bg:   #f4f4f5;
+      --danger:    #dc2626;
+      --radius:    12px;
+    }
+
+    /* theme toggle button */
+    .theme-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: 8px; cursor: pointer;
+      font-size: 13px; color: var(--muted);
+      background: transparent; border: none;
+      width: 100%; text-align: left; font-family: inherit;
+      transition: background 0.15s, color 0.15s;
+    }
+    .theme-btn:hover { background: var(--surface); color: var(--text); }
+    .theme-btn .theme-icon { font-size: 15px; }
 
     html, body { height: 100%; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.65; }
 
@@ -94,7 +125,7 @@
     /* Model dropdown */
     .model-dropdown {
       position: absolute; bottom: calc(100% + 6px); left: 0; right: 0;
-      background: #1e1e1e; border: 1px solid var(--border);
+      background: var(--sidebar); border: 1px solid var(--border);
       border-radius: 10px; padding: 6px; z-index: 200;
       display: none; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     }
@@ -113,6 +144,61 @@
       content: '✓'; color: var(--accent); font-size: 12px; width: 14px; flex-shrink: 0;
     }
     .model-option:not(.selected)::before { content: ''; width: 14px; flex-shrink: 0; display: inline-block; }
+
+    /* ── Accordion ── */
+    .acc-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 6px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .acc-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 12px; cursor: pointer;
+      user-select: none; transition: background 0.15s;
+    }
+    .acc-header:hover { background: var(--surface); }
+    .acc-icon  { font-size: 15px; flex-shrink: 0; }
+    .acc-title { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); }
+    .acc-arrow {
+      color: var(--muted); transition: transform 0.22s;
+      flex-shrink: 0;
+    }
+    .acc-item.open .acc-arrow { transform: rotate(180deg); }
+    .acc-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.28s cubic-bezier(0.4,0,0.2,1),
+                  padding 0.22s;
+      padding: 0 12px;
+    }
+    .acc-item.open .acc-body {
+      max-height: 900px;
+      padding: 0 12px 12px;
+    }
+
+    #modelList::-webkit-scrollbar { width: 4px; }
+    #modelList::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── Tab panes ── */
+    .tab-pane      { display: none; }
+    .tab-pane-flex { flex: 1; min-height: 0; }
+    .tab-pane.visible      { display: block; }
+    .tab-pane-flex.visible { display: flex; }
+
+    /* ── Sidebar tabs ── */
+    .sb-tab {
+      flex: 1; padding: 7px 6px; border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent; color: var(--muted);
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      transition: all 0.15s; font-family: inherit;
+    }
+    .sb-tab.active {
+      background: var(--surface); border-color: var(--border);
+      color: var(--text);
+    }
+    .sb-tab:hover:not(.active) { color: var(--text); }
 
     .sidebar-bottom {
       padding: 8px 12px 16px;
@@ -244,6 +330,8 @@
       font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
       color: #c9d1d9;
     }
+    /* Override hljs background to match our code-bg */
+    .code-block .hljs { background: transparent; padding: 0; }
     .code-block pre::-webkit-scrollbar { height: 4px; }
     .code-block pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
@@ -306,7 +394,7 @@
       color: var(--text); transition: border-color 0.15s, background 0.15s;
       line-height: 1.4;
     }
-    .suggestion-card:hover { border-color: var(--accent2); background: #3a3a3a; }
+    .suggestion-card:hover { border-color: var(--accent2); background: var(--surface); }
     .suggestion-card .s-icon { font-size: 18px; margin-bottom: 6px; display: block; }
     .suggestion-card .s-text { font-weight: 500; }
     .suggestion-card .s-sub  { color: var(--muted); font-size: 12px; margin-top: 2px; }
@@ -389,6 +477,94 @@
     .progress-bar-fill.active { display: block; }
     @keyframes slide { 0% { left: -40%; } 100% { left: 110%; } }
 
+    .sp-section-label {
+      font-size: 10px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.8px;
+      margin-bottom: -8px;
+    }
+
+    /* Row: label + value */
+    .sp-row { display: flex; flex-direction: column; gap: 8px; }
+    .sp-row-head { display: flex; justify-content: space-between; align-items: center; }
+    .sp-label { font-size: 13px; font-weight: 500; }
+    .sp-value { font-size: 13px; color: var(--accent); font-weight: 600; min-width: 36px; text-align: right; }
+    .sp-desc  { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+    /* Slider */
+    .sp-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 4px; border-radius: 4px;
+      background: var(--border); outline: none; cursor: pointer;
+      accent-color: var(--accent2);
+    }
+    .sp-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent2); cursor: pointer;
+      border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+      transition: transform 0.1s;
+    }
+    .sp-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    .sp-slider::-moz-range-thumb {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent2); cursor: pointer;
+      border: 2px solid #fff;
+    }
+
+    /* Text input in settings */
+    .sp-input {
+      width: 100%; padding: 9px 12px; border-radius: 9px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); font-size: 13px; outline: none;
+      font-family: inherit; transition: border-color 0.15s;
+    }
+    .sp-input:focus { border-color: var(--accent2); }
+    .sp-textarea {
+      width: 100%; padding: 9px 12px; border-radius: 9px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); font-size: 13px; outline: none; resize: vertical;
+      font-family: inherit; min-height: 80px; transition: border-color 0.15s;
+    }
+    .sp-textarea:focus { border-color: var(--accent2); }
+
+    /* Segmented control (memory type) */
+    .sp-seg { display: flex; gap: 4px; }
+    .sp-seg-btn {
+      flex: 1; padding: 7px 6px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--muted); font-size: 12px;
+      cursor: pointer; text-align: center; transition: all 0.15s;
+    }
+    .sp-seg-btn.active { background: var(--accent2); border-color: var(--accent2); color: #fff; font-weight: 600; }
+    .sp-seg-btn:hover:not(.active) { border-color: var(--accent2); color: var(--text); }
+
+    /* Toggle */
+    .sp-toggle-row { display: flex; align-items: center; justify-content: space-between; }
+    .sp-toggle {
+      position: relative; width: 40px; height: 22px; cursor: pointer;
+    }
+    .sp-toggle input { opacity: 0; width: 0; height: 0; }
+    .sp-toggle-track {
+      position: absolute; inset: 0; border-radius: 22px;
+      background: var(--border); transition: background 0.2s;
+    }
+    .sp-toggle input:checked + .sp-toggle-track { background: var(--accent2); }
+    .sp-toggle-thumb {
+      position: absolute; top: 3px; left: 3px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; transition: transform 0.2s;
+    }
+    .sp-toggle input:checked ~ .sp-toggle-thumb { transform: translateX(18px); }
+
+    /* Apply button */
+    .sp-apply-btn {
+      width: 100%; padding: 11px; border-radius: 10px;
+      background: var(--accent2); border: none; color: #fff;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .sp-apply-btn:hover { opacity: 0.85; }
+    .sp-apply-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
     /* ── Toast ── */
     .toast {
       position: fixed; bottom: 28px; left: 50%;
@@ -421,31 +597,140 @@
       </button>
     </div>
 
-    <nav class="sidebar-nav">
-      <div class="sidebar-section-label">Tools</div>
-      <div id="toolsList"></div>
-    </nav>
-
-    <!-- Model picker -->
-    <div class="model-pill" id="modelPill" onclick="toggleModelDropdown()">
-      <span class="dot"></span>
-      <span class="pill-name" id="modelPillName">Loading…</span>
-      <svg class="pill-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-      <div class="model-dropdown" id="modelDropdown"></div>
+    <!-- Tabs: Chat / Settings -->
+    <div style="display:flex;gap:4px;padding:0 8px 8px;">
+      <button class="sb-tab active" id="tabChat"     onclick="switchTab('chat')"    >Chat</button>
+      <button class="sb-tab"        id="tabSettings" onclick="switchTab('settings')">⚙ Settings</button>
     </div>
 
-    <div class="sidebar-bottom">
-      <div class="nav-item" onclick="saveFullChat()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Save chat as Word
+    <!-- Chat tab content -->
+    <div id="tabChatContent" style="display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0;">
+
+      <!-- Model selector — scrollable list -->
+      <div style="padding:0 8px 4px;display:flex;flex-direction:column;min-height:0;flex:1;overflow:hidden;">
+        <div class="sidebar-section-label" style="padding:8px 4px 6px;flex-shrink:0;">Model</div>
+        <div id="modelList" style="display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1;min-height:0;"></div>
       </div>
-      <div class="user-row" id="userRow">
-        <div class="user-avatar" id="userAvatar">?</div>
-        <span class="user-name" id="sidebarUser">User</span>
-        <button class="logout-btn" onclick="logout()" title="Sign out">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+
+      <nav class="sidebar-nav" style="flex-shrink:0;max-height:120px;">
+        <div class="sidebar-section-label">Tools</div>
+        <div id="toolsList"></div>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="nav-item" onclick="saveFullChat()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Save chat as Word
+        </div>
+        <button class="theme-btn" id="themeToggle" onclick="toggleTheme()">
+          <span class="theme-icon" id="themeIcon">☀️</span>
+          <span id="themeLabel">Light mode</span>
         </button>
+        <div class="user-row">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <span class="user-name" id="sidebarUser">User</span>
+          <button class="logout-btn" onclick="logout()" title="Sign out">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </div>
       </div>
+    </div>
+
+    <!-- Settings tab content -->
+    <div id="tabSettingsContent" style="display:none;flex-direction:column;flex:1;overflow-y:auto;min-height:0;padding:8px;">
+
+      <!-- ── Accordion: Agent ── -->
+      <div class="acc-item open" id="acc-agent">
+        <div class="acc-header" onclick="toggleAcc('acc-agent')">
+          <span class="acc-icon">🤖</span>
+          <span class="acc-title">Agent</span>
+          <svg class="acc-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="acc-body">
+          <div class="sp-row">
+            <div class="sp-row-head"><span class="sp-label">Agent Name</span></div>
+            <input class="sp-input" id="sp-name" type="text" placeholder="Nova" maxlength="32"/>
+            <span class="sp-desc">The name the agent introduces itself as.</span>
+          </div>
+          <div class="sp-row">
+            <div class="sp-row-head"><span class="sp-label">System Prompt</span></div>
+            <textarea class="sp-textarea" id="sp-system" placeholder="Leave blank for default…"></textarea>
+            <span class="sp-desc">Override the agent's core personality and instructions.</span>
+          </div>
+          <div class="sp-row">
+            <div class="sp-row-head">
+              <span class="sp-label">Temperature</span>
+              <span class="sp-value" id="sp-temp-val">0.70</span>
+            </div>
+            <input class="sp-slider" id="sp-temperature" type="range" min="0" max="2" step="0.05"
+                   value="0.7" oninput="document.getElementById('sp-temp-val').textContent=parseFloat(this.value).toFixed(2)"/>
+            <div style="display:flex;justify-content:space-between;margin-top:3px">
+              <span class="sp-desc">0 — focused</span>
+              <span class="sp-desc">2 — creative</span>
+            </div>
+          </div>
+          <div class="sp-row">
+            <div class="sp-row-head">
+              <span class="sp-label">Max Tokens</span>
+              <span class="sp-value" id="sp-tokens-val">4096</span>
+            </div>
+            <input class="sp-slider" id="sp-max-tokens" type="range" min="256" max="8192" step="256"
+                   value="4096" oninput="document.getElementById('sp-tokens-val').textContent=this.value"/>
+            <div style="display:flex;justify-content:space-between;margin-top:3px">
+              <span class="sp-desc">256</span>
+              <span class="sp-desc">8192</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Accordion: Memory ── -->
+      <div class="acc-item open" id="acc-mem">
+        <div class="acc-header" onclick="toggleAcc('acc-mem')">
+          <span class="acc-icon">🧠</span>
+          <span class="acc-title">Memory</span>
+          <svg class="acc-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="acc-body">
+          <div class="sp-row">
+            <div class="sp-seg" id="sp-memory-seg">
+              <div class="sp-seg-btn active" data-val="buffer"  onclick="selectMemory(this)">Buffer</div>
+              <div class="sp-seg-btn"        data-val="summary" onclick="selectMemory(this)">Summary</div>
+              <div class="sp-seg-btn"        data-val="vector"  onclick="selectMemory(this)">Vector</div>
+            </div>
+            <span class="sp-desc" style="margin-top:6px">
+              <b>Buffer</b> — keeps recent messages verbatim.<br>
+              <b>Summary</b> — compresses old turns into a summary.<br>
+              <b>Vector</b> — semantic search over past messages.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Accordion: Behaviour ── -->
+      <div class="acc-item" id="acc-beh">
+        <div class="acc-header" onclick="toggleAcc('acc-beh')">
+          <span class="acc-icon">⚙️</span>
+          <span class="acc-title">Behaviour</span>
+          <svg class="acc-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="acc-body">
+          <div class="sp-toggle-row">
+            <div>
+              <div class="sp-label">Verbose mode</div>
+              <div class="sp-desc">Print debug info to the server console.</div>
+            </div>
+            <label class="sp-toggle">
+              <input type="checkbox" id="sp-verbose"/>
+              <div class="sp-toggle-track"></div>
+              <div class="sp-toggle-thumb"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <button class="sp-apply-btn" id="sp-apply-btn" style="margin-top:8px" onclick="applySettings()">Apply Settings</button>
+
     </div>
   </aside>
 
@@ -469,9 +754,9 @@
             <div class="s-sub">Calculator tool</div>
           </div>
           <div class="suggestion-card" onclick="sendSuggestion(this)">
-            <span class="s-icon">🐍</span>
-            <div class="s-text">Write a Python function to sort a list</div>
-            <div class="s-sub">Code generation</div>
+            <span class="s-icon">💻</span>
+            <div class="s-text">Write a C# Hello World program</div>
+            <div class="s-sub">Code generation — any language</div>
           </div>
           <div class="suggestion-card" onclick="sendSuggestion(this)">
             <span class="s-icon">📅</span>
@@ -534,6 +819,26 @@
     window.location.href = '/login';
   }
 
+  // ── Theme toggle ─────────────────────────────────────────────────────────────
+  const HLJS_DARK  = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
+  const HLJS_LIGHT = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.getElementById('hljs-theme').href = theme === 'light' ? HLJS_LIGHT : HLJS_DARK;
+    document.getElementById('themeIcon').textContent  = theme === 'light' ? '🌙' : '☀️';
+    document.getElementById('themeLabel').textContent = theme === 'light' ? 'Dark mode'  : 'Light mode';
+    localStorage.setItem('nova_theme', theme);
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  }
+
+  // Restore saved theme on load
+  applyTheme(localStorage.getItem('nova_theme') || 'dark');
+
   if (_username) {
     const el = document.getElementById('sidebarUser');
     if (el) el.textContent = _username;
@@ -589,50 +894,62 @@
 
   // ── Model dropdown ──────────────────────────────────────────────────────────
   let _allModels   = {};
+  let _configured  = {};
   let _selProvider = 'google';
   let _selModel    = '';
-
-  function toggleModelDropdown() {
-    document.getElementById('modelDropdown').classList.toggle('open');
-  }
-  document.addEventListener('click', e => {
-    const pill = document.getElementById('modelPill');
-    if (pill && !pill.contains(e.target)) {
-      document.getElementById('modelDropdown').classList.remove('open');
-    }
-  });
 
   async function loadModels() {
     try {
       const res  = await fetch('/api/models');
       const data = await res.json();
-      _allModels   = data.available || {};
+      _allModels   = data.available   || {};
+      _configured  = data.configured  || {};
       _selProvider = data.current_provider || 'google';
       _selModel    = data.current_model    || '';
-      document.getElementById('modelPillName').textContent = _selModel || _selProvider;
-      renderModelDropdown();
+      renderModelList();
     } catch(_) {}
   }
 
-  function renderModelDropdown() {
-    const dd = document.getElementById('modelDropdown');
-    const providers = { google: 'Google', openai: 'OpenAI', anthropic: 'Anthropic' };
+  function renderModelList() {
+    const list = document.getElementById('modelList');
+    if (!list) return;
+    const providerLabels = { google: '🟢 Google', openai: '🔵 OpenAI', anthropic: '🟠 Anthropic', ica: '🟣 ICA' };
     let html = '';
-    for (const [prov, label] of Object.entries(providers)) {
-      const models = _allModels[prov] || [];
+    for (const [prov, label] of Object.entries(providerLabels)) {
+      const models     = _allModels[prov] || [];
+      const hasKey     = _configured[prov] !== false;   // true if key present or unknown
       if (!models.length) continue;
-      html += `<div class="provider-label">${label}</div>`;
+      // Provider header — show 🔒 if no API key configured
+      html += `<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;
+                           letter-spacing:0.5px;padding:6px 8px 3px;display:flex;justify-content:space-between;align-items:center;">
+                 <span>${label}</span>
+                 ${!hasKey ? '<span title="Add API key to .env" style="font-size:11px;opacity:0.6;">🔒 no key</span>' : ''}
+               </div>`;
       models.forEach(m => {
-        const sel = (m === _selModel) ? ' selected' : '';
-        html += `<div class="model-option${sel}" onclick="applyModel('${prov}','${m}')">${m}</div>`;
+        const isActive = m === _selModel;
+        const locked   = !hasKey;
+        const style    = isActive
+          ? 'background:var(--accent2);color:#fff;'
+          : locked
+            ? 'background:transparent;color:var(--muted);opacity:0.45;cursor:not-allowed;'
+            : 'background:transparent;color:var(--muted);cursor:pointer;';
+        const click    = locked ? `showToast('Add ICA_API_KEY to your .env file first')` : `applyModel('${prov}','${m}')`;
+        html += `<div onclick="${click}"
+          style="${style}padding:7px 10px;border-radius:7px;font-size:12px;
+                 transition:background 0.15s;display:flex;align-items:center;gap:6px;"
+          ${!locked && !isActive ? `onmouseover="this.style.background='var(--surface)';this.style.color='var(--text)'"
+          onmouseout="this.style.background='transparent';this.style.color='var(--muted)'"` : ''}
+        >${isActive ? '✓ ' : locked ? '🔒 ' : ''}${m}</div>`;
       });
     }
-    dd.innerHTML = html;
+    list.innerHTML = html;
   }
 
   async function applyModel(provider, model) {
-    document.getElementById('modelDropdown').classList.remove('open');
-    document.getElementById('modelPillName').textContent = model;
+    const prevModel    = _selModel;
+    const prevProvider = _selProvider;
+    _selModel = model; _selProvider = provider;
+    renderModelList();
     showToast('Switching model…');
     try {
       const res  = await fetch('/api/models/switch', {
@@ -641,12 +958,13 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Switch failed');
-      _selProvider = provider; _selModel = model;
-      renderModelDropdown();
-      showToast(`Now using ${model}`);
+      showToast(`✓ Now using ${model}`);
       appendAssistantNote(`Switched to **${model}** (${provider}). Memory preserved.`);
     } catch(e) {
-      showToast('Switch failed: ' + e.message);
+      // Revert selection on failure
+      _selModel = prevModel; _selProvider = prevProvider;
+      renderModelList();
+      showToast('⚠ ' + e.message);
     }
   }
 
@@ -746,6 +1064,23 @@
       const decoder = new TextDecoder();
       let   buffer  = '';
       let   rawText = '';
+      let   renderPending = false;
+
+      // Throttled render: re-renders at most once per 80ms during streaming.
+      // This avoids running the full markdown pipeline on every single token.
+      function scheduleRender(final = false) {
+        if (final) {
+          contentEl.innerHTML = renderMarkdown(normalizeStream(rawText));
+          return;
+        }
+        if (renderPending) return;
+        renderPending = true;
+        setTimeout(() => {
+          renderPending = false;
+          contentEl.innerHTML = renderMarkdown(normalizeStream(rawText)) + '<span class="cursor">▌</span>';
+          scrollBottom();
+        }, 80);
+      }
 
       while (true) {
         const { value, done } = await reader.read();
@@ -759,8 +1094,7 @@
             const evt = JSON.parse(line.slice(5).trim());
             if (evt.type === 'token') {
               rawText += evt.data;
-              contentEl.innerHTML = renderMarkdown(rawText) + '<span class="cursor">▌</span>';
-              scrollBottom();
+              scheduleRender();
             } else if (evt.type === 'tool') {
               const badge = document.createElement('div');
               badge.className = 'tool-badge';
@@ -768,7 +1102,7 @@
               contentEl.prepend(badge);
             } else if (evt.type === 'done') {
               turns = parseInt(evt.data) || turns;
-              contentEl.innerHTML = renderMarkdown(rawText);
+              scheduleRender(true);
               if (rawText.trim()) {
                 _chatHistory.push({ role: 'assistant', content: rawText });
                 addMsgActions(row, contentEl, rawText);
@@ -776,7 +1110,7 @@
               scrollBottom();
             } else if (evt.type === 'error') {
               rawText += `\n\nError: ${evt.data}`;
-              contentEl.innerHTML = renderMarkdown(rawText);
+              scheduleRender(true);
             }
           } catch(_) {}
         }
@@ -951,54 +1285,149 @@
     setTimeout(() => t.classList.remove('show'), 2600);
   }
 
+  // ── Stream normalizer ───────────────────────────────────────────────────────
+  // LLMs emit soft-wrap newlines (a single \n mid-sentence) that are NOT
+  // intentional line breaks. Collapse them to a space so words flow correctly.
+  // Real paragraph breaks (blank line = \n\n) and code blocks are preserved.
+  function normalizeStream(text) {
+    // Protect fenced code blocks from normalization
+    const blocks = [];
+    text = text.replace(/```[\s\S]*?```/g, m => { blocks.push(m); return `\x00B${blocks.length-1}\x00`; });
+    // Collapse isolated newlines (not preceded/followed by another \n) into a space
+    text = text.replace(/(?<!\n)\n(?!\n)/g, ' ');
+    // Restore code blocks
+    text = text.replace(/\x00B(\d+)\x00/g, (_, i) => blocks[+i]);
+    return text;
+  }
+
   // ── Markdown renderer ───────────────────────────────────────────────────────
   function renderMarkdown(text) {
-    // Fenced code blocks
-    text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-      const l = lang || 'code';
-      const escaped = escapeHtml(code.trimEnd());
-      return `<div class="code-block">
+    // ── 1. Extract and protect fenced code blocks ──────────────────────────────
+    const blocks = [];
+    text = text.replace(/```([\w\-]*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+      const l        = lang.trim() || 'plaintext';
+      const escaped  = escapeHtml(code.trimEnd());
+      const langLabel = l === 'plaintext' ? 'code' : l;
+      const highlighted = tryHighlight(escaped, l);
+      const html = `<div class="code-block">
         <div class="code-header">
-          <span>${l}</span>
+          <span>${langLabel}</span>
           <button class="copy-code-btn" onclick="copyCode(this)">Copy</button>
         </div>
-        <pre><code>${escaped}</code></pre>
+        <pre><code class="hljs">${highlighted}</code></pre>
       </div>`;
+      blocks.push(html);
+      return `\x00BLOCK${blocks.length - 1}\x00`;
     });
-    // Headings
-    text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-    text = text.replace(/^## (.+)$/gm,  '<h2>$1</h2>');
-    text = text.replace(/^# (.+)$/gm,   '<h1>$1</h1>');
-    // Bold / italic
-    text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
-    // Inline code
-    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-    // Blockquote
-    text = text.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
-    // HR
-    text = text.replace(/^---$/gm, '<hr>');
-    // Unordered list
-    text = text.replace(/^[\s]*[-*]\s+(.+)$/gm, '<li>$1</li>');
-    text = text.replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g, '<ul>$1</ul>');
-    // Ordered list
-    text = text.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
-    // Tables (simple)
-    text = text.replace(/^\|(.+)\|$/gm, (_, row) => {
-      const cells = row.split('|').map(c => c.trim());
-      return '<tr>' + cells.map(c => c.match(/^[-:]+$/) ? '' : `<td>${c}</td>`).join('') + '</tr>';
+
+    // ── 2. Inline code (protect before other transforms) ──────────────────────
+    const inlines = [];
+    text = text.replace(/`([^`\n]+)`/g, (_, c) => {
+      inlines.push(`<code>${escapeHtml(c)}</code>`);
+      return `\x00INLINE${inlines.length - 1}\x00`;
     });
-    text = text.replace(/(<tr>.*<\/tr>)/gs, '<table>$1</table>');
-    // Paragraphs / newlines — but skip block elements
-    text = text.replace(/\n\n+/g, '</p><p>');
-    text = text.replace(/\n/g, '<br>');
-    text = `<p>${text}</p>`;
-    // Clean up empty <p>
-    text = text.replace(/<p>\s*<\/p>/g, '');
-    text = text.replace(/<p>(<(?:div|ul|ol|h[1-6]|pre|blockquote|table|hr))/g, '$1');
-    text = text.replace(/<\/(?:div|ul|ol|h[1-6]|pre|blockquote|table|hr)><\/p>/g, m => m.replace('</p>',''));
+
+    // ── 3. Escape remaining HTML ───────────────────────────────────────────────
+    text = text.replace(/&(?!(?:amp|lt|gt|quot|#\d+);)/g, '&amp;')
+               .replace(/<(?!\/?\x00)/g, '&lt;')
+               .replace(/(?<!\x00)>/g, '&gt;');
+
+    // ── 4. Headings ───────────────────────────────────────────────────────────
+    text = text.replace(/^#{4}\s+(.+)$/gm, '<h4>$1</h4>');
+    text = text.replace(/^#{3}\s+(.+)$/gm, '<h3>$1</h3>');
+    text = text.replace(/^#{2}\s+(.+)$/gm, '<h2>$1</h2>');
+    text = text.replace(/^#{1}\s+(.+)$/gm, '<h1>$1</h1>');
+
+    // ── 5. Bold / italic ──────────────────────────────────────────────────────
+    text = text.replace(/\*\*\*(.+?)\*\*\*/g,        '<strong><em>$1</em></strong>');
+    text = text.replace(/\*\*(.+?)\*\*/g,             '<strong>$1</strong>');
+    // __ bold: only match when surrounded by word boundaries to avoid false positives
+    text = text.replace(/\b__(.+?)__\b/g,             '<strong>$1</strong>');
+    // * italic: must not be a bullet (preceded by non-space or start-of-content)
+    text = text.replace(/\*([^\s*][^*]*?)\*/g,        '<em>$1</em>');
+    // _ italic: only between word boundaries — never inside identifiers like snake_case
+    text = text.replace(/(?<!\w)_([^\s_][^_]*?)_(?!\w)/g, '<em>$1</em>');
+
+    // ── 6. Blockquotes ────────────────────────────────────────────────────────
+    text = text.replace(/^&gt;\s*(.+)$/gm, '<blockquote>$1</blockquote>');
+    text = text.replace(/^>\s*(.+)$/gm,    '<blockquote>$1</blockquote>');
+
+    // ── 7. Horizontal rules ───────────────────────────────────────────────────
+    text = text.replace(/^(-{3,}|\*{3,})$/gm, '<hr>');
+
+    // ── 8. Tables ─────────────────────────────────────────────────────────────
+    text = text.replace(/^(\|.+\|)\n\|[-| :]+\|\n((?:\|.+\|\n?)*)/gm, (_, header, body) => {
+      const toRow = (line, tag) =>
+        '<tr>' + line.replace(/^\||\|$/g, '').split('|').map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+      const hRow  = toRow(header, 'th');
+      const bRows = body.trim().split('\n').filter(l => l.trim()).map(l => toRow(l, 'td')).join('');
+      return `<table><thead>${hRow}</thead><tbody>${bRows}</tbody></table>`;
+    });
+
+    // ── 9. Lists (ordered and unordered) ─────────────────────────────────────
+    // Process line-by-line to build proper nested <ul>/<ol> structures
+    const lines   = text.split('\n');
+    const out     = [];
+    let   inUL    = false;
+    let   inOL    = false;
+
+    for (const line of lines) {
+      const ulMatch = line.match(/^[\s]*[-*+]\s+(.+)$/);
+      const olMatch = line.match(/^[\s]*\d+\.\s+(.+)$/);
+
+      if (ulMatch) {
+        if (inOL) { out.push('</ol>'); inOL = false; }
+        if (!inUL) { out.push('<ul>'); inUL = true; }
+        out.push(`<li>${ulMatch[1]}</li>`);
+      } else if (olMatch) {
+        if (inUL) { out.push('</ul>'); inUL = false; }
+        if (!inOL) { out.push('<ol>'); inOL = true; }
+        out.push(`<li>${olMatch[1]}</li>`);
+      } else {
+        if (inUL) { out.push('</ul>'); inUL = false; }
+        if (inOL) { out.push('</ol>'); inOL = false; }
+        out.push(line);
+      }
+    }
+    if (inUL) out.push('</ul>');
+    if (inOL) out.push('</ol>');
+    text = out.join('\n');
+
+    // ── 10. Paragraphs ────────────────────────────────────────────────────────
+    // A chunk is "block-level" if it starts with a block tag OR is a code/inline placeholder
+    const BLOCK = /^(<(h[1-6]|ul|ol|li|blockquote|table|thead|tbody|tr|th|td|hr|div|pre)|\x00BLOCK)/;
+    const paras = text.split(/\n{2,}/);
+    text = paras.map(para => {
+      para = para.trim();
+      if (!para) return '';
+      if (BLOCK.test(para)) return para;
+      // Collapse any remaining single newlines → space (soft wraps)
+      return '<p>' + para.replace(/\n/g, ' ') + '</p>';
+    }).filter(Boolean).join('\n');
+
+    // ── 11. Restore protected blocks ──────────────────────────────────────────
+    text = text.replace(/\x00BLOCK(\d+)\x00/g, (_, i) => blocks[+i]);
+    text = text.replace(/\x00INLINE(\d+)\x00/g, (_, i) => inlines[+i]);
+
+    // ── 12. Clean up any <p> tags that wrapped block-level elements ────────────
+    // e.g. <p><div class="code-block">...</div></p> → <div class="code-block">...</div>
+    text = text.replace(/<p>\s*(<(?:div|ul|ol|h[1-6]|table|blockquote|hr|pre)[\s\S]*?(?:<\/(?:div|ul|ol|h[1-6]|table|blockquote|pre)>|<hr>))\s*<\/p>/g, '$1');
+
     return text;
+  }
+
+  // Try to syntax-highlight an already-escaped code string using hljs if available
+  function tryHighlight(escapedCode, lang) {
+    try {
+      if (window.hljs) {
+        const raw = escapedCode
+          .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
+        const validLang = window.hljs.getLanguage(lang);
+        if (validLang) return window.hljs.highlight(raw, { language: lang }).value;
+        return window.hljs.highlightAuto(raw).value;
+      }
+    } catch(_) {}
+    return escapedCode;
   }
 
   function escapeHtml(t) {
@@ -1011,6 +1440,73 @@
       btn.textContent = 'Copied!';
       setTimeout(() => btn.textContent = 'Copy', 2000);
     });
+  }
+
+  // ── Sidebar tabs ────────────────────────────────────────────────────────────
+  function toggleAcc(id) {
+    document.getElementById(id).classList.toggle('open');
+  }
+
+  function switchTab(tab) {
+    const isSettings = tab === 'settings';
+    document.getElementById('tabChatContent').style.display     = isSettings ? 'none' : 'flex';
+    document.getElementById('tabSettingsContent').style.display = isSettings ? 'flex' : 'none';
+    document.getElementById('tabChat').classList.toggle('active',    !isSettings);
+    document.getElementById('tabSettings').classList.toggle('active', isSettings);
+    if (isSettings) loadSettingsValues();
+  }
+
+  // ── Settings panel ──────────────────────────────────────────────────────────
+  let _spMemory = 'buffer';
+
+  function loadSettingsValues() {
+    fetch('/api/agent/settings').then(r => r.json()).then(s => {
+      document.getElementById('sp-name').value        = s.name        || 'Nova';
+      document.getElementById('sp-system').value      = s.system_message || '';
+      document.getElementById('sp-temperature').value = s.temperature  ?? 0.7;
+      document.getElementById('sp-temp-val').textContent = parseFloat(s.temperature ?? 0.7).toFixed(2);
+      document.getElementById('sp-max-tokens').value  = s.max_tokens  ?? 4096;
+      document.getElementById('sp-tokens-val').textContent = s.max_tokens ?? 4096;
+      document.getElementById('sp-verbose').checked   = !!s.verbose;
+      _spMemory = s.memory_type || 'buffer';
+      document.querySelectorAll('#sp-memory-seg .sp-seg-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.val === _spMemory);
+      });
+    }).catch(() => {});
+  }
+
+  function selectMemory(btn) {
+    _spMemory = btn.dataset.val;
+    document.querySelectorAll('#sp-memory-seg .sp-seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  async function applySettings() {
+    const btn = document.getElementById('sp-apply-btn');
+    btn.disabled = true; btn.textContent = 'Applying…';
+    try {
+      const body = {
+        name:           document.getElementById('sp-name').value.trim() || 'Nova',
+        temperature:    parseFloat(document.getElementById('sp-temperature').value),
+        max_tokens:     parseInt(document.getElementById('sp-max-tokens').value),
+        memory_type:    _spMemory,
+        verbose:        document.getElementById('sp-verbose').checked,
+        system_message: document.getElementById('sp-system').value.trim(),
+      };
+      const res  = await fetch('/api/agent/settings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Failed');
+      switchTab('chat');
+      showToast(`✅ Settings applied`);
+      appendAssistantNote(`Settings updated ✅\n- **Name:** ${body.name}\n- **Temperature:** ${body.temperature.toFixed(2)}\n- **Max tokens:** ${body.max_tokens}\n- **Memory:** ${body.memory_type}`);
+    } catch(e) {
+      showToast('Error: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Apply Settings';
+    }
   }
 
   // ── Start ───────────────────────────────────────────────────────────────────

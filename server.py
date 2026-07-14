@@ -81,9 +81,17 @@ from config import setup_directories, settings
 # ── App setup ────────────────────────────────────────────────────────────────
 app = FastAPI(title="AI Agent API", version="1.0.0")
 
+# Allow requests from local dev and any Vercel/production deployment
+_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+    os.environ.get("FRONTEND_URL", ""),   # set this in Railway: FRONTEND_URL=https://nova-ui.vercel.app
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o for o in _ALLOWED_ORIGINS if o] or ["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -115,10 +123,53 @@ def _save_working_model(model: str):
     except Exception:
         pass
 
+# Map every known model name → its provider
+_MODEL_PROVIDER_MAP: dict[str, str] = {
+    # Google
+    "gemini-2.5-flash-lite": "google", "gemini-2.5-flash": "google",
+    "gemini-2.0-flash": "google", "gemini-flash-latest": "google",
+    "gemini-3-flash-preview": "google",
+    # OpenAI
+    "gpt-4o-mini": "openai", "gpt-4o": "openai", "gpt-3.5-turbo": "openai",
+    # Anthropic
+    "claude-3-5-haiku-20241022": "anthropic", "claude-3-5-sonnet-20241022": "anthropic",
+    "claude-3-opus-20240229": "anthropic",
+    # ICA
+    "gpt-5.2": "ica",
+    "meta-llama/llama-3-3-70b-instruct": "ica", "meta-llama/llama-3-1-8b-instruct": "ica",
+    "ibm/granite-3-3-8b-instruct": "ica", "ibm/granite-3-3-2b-instruct": "ica",
+    "mistralai/mistral-large": "ica",
+}
+
+_KEY_ATTR_MAP: dict[str, str] = {
+    "google": "google_api_key",
+    "openai": "openai_api_key",
+    "anthropic": "anthropic_api_key",
+    "ica": "ica_api_key",
+}
+
 def _load_working_model() -> Optional[str]:
+    """
+    Load the last saved model only if its provider's API key is still configured.
+    If the key is missing, fall back to the default provider's model instead of
+    crashing with a quota / auth error on startup.
+    """
     try:
         if os.path.exists(_WORKING_MODEL_FILE):
-            return open(_WORKING_MODEL_FILE).read().strip() or None
+            saved = open(_WORKING_MODEL_FILE).read().strip()
+            if not saved:
+                return None
+            from config import settings as _s
+            provider = _MODEL_PROVIDER_MAP.get(saved)
+            key_attr  = _KEY_ATTR_MAP.get(provider or "")
+            if key_attr and getattr(_s, key_attr, ""):
+                return saved          # key exists → safe to use
+            # Key missing — clear the stale file and fall back to default
+            try:
+                os.remove(_WORKING_MODEL_FILE)
+            except Exception:
+                pass
+            return None               # caller will use the .env default
     except Exception:
         pass
     return None
@@ -183,19 +234,11 @@ def auth_me(username: str = Depends(get_current_user)):
     user  = users.get(username, {})
     return {"username": username, "email": user.get("email", "")}
 
-# ── Page routes ───────────────────────────────────────────────────────────────
-@app.get("/login")
-def page_login():
-    return FileResponse("static/login.html")
-
-@app.get("/signup")
-def page_signup():
-    return FileResponse("static/signup.html")
-
-# ── Routes ────────────────────────────────────────────────────────────────────
+# ── Root redirect — UI is now served by Next.js on port 3000 ──────────────────
 @app.get("/")
 def root():
-    return FileResponse("static/index.html")
+    from fastapi.responses import JSONResponse
+    return JSONResponse({"message": "Nova AI API is running. Open http://localhost:3000 for the UI."})
 
 @app.get("/api/status")
 async def status():
@@ -376,16 +419,39 @@ AVAILABLE_MODELS = {
         "claude-3-5-sonnet-20241022",
         "claude-3-opus-20240229",
     ],
+    "ica": [
+        "gpt-5.2",
+        "meta-llama/llama-3-3-70b-instruct",
+        "meta-llama/llama-3-1-8b-instruct",
+        "ibm/granite-3-3-8b-instruct",
+        "ibm/granite-3-3-2b-instruct",
+        "mistralai/mistral-large",
+    ],
 }
 
 @app.get("/api/models")
 def list_models():
     from config import settings
+    configured = {
+        "openai":    bool(settings.openai_api_key),
+        "anthropic": bool(settings.anthropic_api_key),
+        "google":    bool(settings.google_api_key),
+        "ica":       bool(settings.ica_api_key),
+    }
     return {
         "current_provider": settings.default_llm_provider,
         "current_model": _load_working_model() or settings.google_model,
         "available": AVAILABLE_MODELS,
+        "configured": configured,
     }
+
+# Map provider → settings key name (for pre-flight check)
+_PROVIDER_KEY_MAP = {
+    "openai":    "openai_api_key",
+    "anthropic": "anthropic_api_key",
+    "google":    "google_api_key",
+    "ica":       "ica_api_key",
+}
 
 @app.post("/api/models/switch")
 def switch_model(req: SwitchModelRequest):
@@ -394,6 +460,19 @@ def switch_model(req: SwitchModelRequest):
         raise HTTPException(status_code=400, detail=f"Unknown provider: {req.provider}")
     if req.model not in AVAILABLE_MODELS[req.provider]:
         raise HTTPException(status_code=400, detail=f"Unknown model: {req.model}")
+
+    # Pre-flight: check the API key is configured before trying to build the agent
+    from config import settings as _s
+    key_attr = _PROVIDER_KEY_MAP.get(req.provider)
+    if key_attr and not getattr(_s, key_attr, ""):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"No API key found for provider '{req.provider}'. "
+                f"Add {key_attr.upper()} to your .env file and restart the server."
+            ),
+        )
+
     try:
         # Rebuild agent with new provider/model, keep existing memory
         old_memory = _agent.memory if _agent else None
@@ -484,6 +563,72 @@ async def redteam_run():
     from redteam import run_redteam
     report = await loop.run_in_executor(None, lambda: run_redteam(verbose=False))
     return report
+
+# ── Agent Settings ────────────────────────────────────────────────────────────
+_AGENT_SETTINGS_FILE = "./data/agent_settings.json"
+
+_DEFAULT_SETTINGS = {
+    "name":        "Nova",
+    "temperature": 0.7,
+    "max_tokens":  4096,
+    "memory_type": "buffer",
+    "verbose":     False,
+    "system_message": "",
+}
+
+def _load_agent_settings() -> dict:
+    try:
+        if os.path.exists(_AGENT_SETTINGS_FILE):
+            with open(_AGENT_SETTINGS_FILE) as f:
+                return {**_DEFAULT_SETTINGS, **json.load(f)}
+    except Exception:
+        pass
+    return dict(_DEFAULT_SETTINGS)
+
+def _save_agent_settings(s: dict):
+    os.makedirs("data", exist_ok=True)
+    with open(_AGENT_SETTINGS_FILE, "w") as f:
+        json.dump(s, f, indent=2)
+
+class AgentSettingsRequest(BaseModel):
+    name:           Optional[str]   = None
+    temperature:    Optional[float] = None
+    max_tokens:     Optional[int]   = None
+    memory_type:    Optional[str]   = None
+    verbose:        Optional[bool]  = None
+    system_message: Optional[str]   = None
+
+@app.get("/api/agent/settings")
+def get_agent_settings():
+    return _load_agent_settings()
+
+@app.post("/api/agent/settings")
+def update_agent_settings(req: AgentSettingsRequest):
+    global _agent
+    s = _load_agent_settings()
+    if req.name           is not None: s["name"]           = req.name
+    if req.temperature    is not None: s["temperature"]    = max(0.0, min(2.0, req.temperature))
+    if req.max_tokens     is not None: s["max_tokens"]     = max(256, min(8192, req.max_tokens))
+    if req.memory_type    is not None: s["memory_type"]    = req.memory_type
+    if req.verbose        is not None: s["verbose"]        = req.verbose
+    if req.system_message is not None: s["system_message"] = req.system_message
+    _save_agent_settings(s)
+    # Rebuild agent with new settings
+    try:
+        old_memory = _agent.memory if _agent else None
+        _agent = AIAgent(
+            name=s["name"],
+            verbose=s["verbose"],
+            model=_load_working_model(),
+            temperature=s["temperature"],
+            system_message=s["system_message"] or None,
+        )
+        if old_memory:
+            _agent.memory = old_memory
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"ok": True, "settings": s}
+
 
 # ── File Upload ───────────────────────────────────────────────────────────────
 _UPLOAD_DIR = "./data/uploads"
@@ -597,8 +742,9 @@ def export_docx(req: ExportRequest):
     # Timestamp
     ts = doc.add_paragraph(f"Exported: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}")
     ts.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    ts.runs[0].font.color.rgb = RGBColor(0x88, 0x88, 0x99)
-    ts.runs[0].font.size = Pt(9)
+    if ts.runs:
+        ts.runs[0].font.color.rgb = RGBColor(0x88, 0x88, 0x99)
+        ts.runs[0].font.size = Pt(9)
 
     doc.add_paragraph()  # spacer
 
@@ -619,7 +765,8 @@ def export_docx(req: ExportRequest):
         # Content — split on newlines for proper paragraphs
         for line in content.split("\n"):
             p = doc.add_paragraph(line)
-            p.runs[0].font.size = Pt(11) if p.runs else None
+            if p.runs:
+                p.runs[0].font.size = Pt(11)
 
         doc.add_paragraph()  # spacer between messages
 

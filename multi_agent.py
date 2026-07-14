@@ -30,8 +30,10 @@ _ROLE_PROMPTS: Dict[AgentRole, str] = {
         "Adapt tone and style to the audience."
     ),
     AgentRole.CODER: (
-        "You are a Coder agent. Write clean, efficient, well-documented code. "
-        "Follow best practices and suggest improvements."
+        "You are a Coder agent. Write clean, efficient, well-documented code in "
+        "ANY programming language the task requires (Python, C#, Java, JavaScript, "
+        "C++, Go, Rust, SQL, TypeScript, etc.). Follow the language's best practices "
+        "and suggest improvements."
     ),
     AgentRole.PLANNER: (
         "You are a Planner agent. Create detailed plans, break down complex tasks, "

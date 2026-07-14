@@ -1,18 +1,18 @@
 version: "3.9"
 
-# Loads variables from .env file in the same directory automatically.
 # Copy .env.example → .env and fill in your API keys before running.
+# Run with: docker-compose up -d
 
 services:
-  # ── AI Agent Server ─────────────────────────────────────────────────────────
-  agent:
+
+  # ── FastAPI Backend ──────────────────────────────────────────────────────────
+  backend:
     build: .
-    env_file:
-      - .env                          # explicit — works even without shell exports
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
     ports:
       - "8000:8000"
-    environment:
-      - REDIS_URL=redis://redis:6379/0   # override to point at the redis service
     volumes:
       - agent_data:/app/data
       - agent_logs:/app/logs
@@ -27,11 +27,20 @@ services:
       start_period: 20s
       retries: 3
 
-  # ── Redis (distributed cache) ───────────────────────────────────────────────
+  # ── Next.js Frontend ─────────────────────────────────────────────────────────
+  frontend:
+    build: ./nova-ui
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ── Redis (distributed cache) ────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     command: >

@@ -1,5 +1,5 @@
 """
-LLM Provider abstraction — supports OpenAI, Anthropic, and Google.
+LLM Provider abstraction — supports OpenAI, Anthropic, Google, and ICA.
 """
 from typing import Optional
 from langchain_openai import ChatOpenAI
@@ -45,6 +45,23 @@ class LLMProvider:
                 google_api_key=settings.google_api_key,
                 **kwargs,
             )
+        elif provider == "ica":
+            # ICA (IBM Cognitive Architecture) uses its own API key (ak_...) directly
+            # as a Bearer token — no IAM token exchange needed.
+            # The endpoint is OpenAI-compatible at /v1.
+            api_key  = settings.ica_api_key
+            base_url = settings.ica_base_url.rstrip("/")
+            return ChatOpenAI(
+                model=model or settings.ica_model,
+                temperature=temperature,
+                api_key=api_key,
+                base_url=base_url,
+                default_headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type":  "application/json",
+                },
+                **kwargs,
+            )
         else:
             raise ValueError(f"Unsupported LLM provider: {provider}")
 
@@ -54,6 +71,7 @@ class LLMProvider:
             "openai": bool(settings.openai_api_key),
             "anthropic": bool(settings.anthropic_api_key),
             "google": bool(settings.google_api_key),
+            "ica": bool(settings.ica_api_key),
         }
 
     @staticmethod
@@ -63,11 +81,13 @@ class LLMProvider:
             "openai": settings.openai_model,
             "anthropic": settings.anthropic_model,
             "google": settings.google_model,
+            "ica": settings.ica_model,
         }
         key_map = {
             "openai": settings.openai_api_key,
             "anthropic": settings.anthropic_api_key,
             "google": settings.google_api_key,
+            "ica": settings.ica_api_key,
         }
         return {
             "provider": provider,
